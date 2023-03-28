@@ -29,7 +29,7 @@ If pip3 are not installed: sudo apt-install python3-pip
   1. Create daemon-file *sudo touch /etc/systemd/system/analytics_bi.service*
   2. Write the following in created daemon-file:
   
-   <code>
+    <code>
     
     [Unit]
      Description=Analytics BI
@@ -43,7 +43,7 @@ If pip3 are not installed: sudo apt-install python3-pip
     [Install]
      WantedBy=multi-user.target
      
-   </code>
+    </code>
    
    3. Run connector.py on the server with access to the TTM system.  
    
