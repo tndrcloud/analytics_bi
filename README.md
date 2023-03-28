@@ -1,5 +1,7 @@
 <h2>Analytics BI</h2>
 
+- microservice for BI analytics (integration with a TTM system for analyzing the reasons for exceeding SLA indicators with detailed analysis and information about the work of the departments involved in solving the problem).
+
 <h2>Requirements</h2>
 
 - python 3.9+
