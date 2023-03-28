@@ -9,9 +9,9 @@
 - threading
 - psycopg2
 
-Use command *pip3 install python-telegram-bot --upgrade* and *pip3 install requests --upgrade*  to install Python packages
+Use command *pip3 install -r .\requirements.txt
 
-If pip3 are not installed: *sudo apt-install python3-pip*
+If pip3 are not installed: sudo apt-install python3-pip
 
  <h2>How use</h2>
  
@@ -22,22 +22,22 @@ If pip3 are not installed: *sudo apt-install python3-pip*
  **To run this programm/script you can use the following commands:**
  
  - Run with opened console. Can't use console for another tasks(console are not available):
-  *python3 /path/to/script/bot.py*
+  *python3 /path/to/script/main.py*
  - Run with opened console. Can use console for another tasks(console are available):
-  *python3 /path/to/script/bot.py &*
+  *python3 /path/to/script/main.py &*
  - Run like daemon. Console can used for another tasks or can be closed:
-  1. Create daemon-file *sudo touch /etc/systemd/system/bot.service*
+  1. Create daemon-file *sudo touch /etc/systemd/system/analytics_bi.service*
   2. Write the following in created daemon-file:
   
    <code>
     
     [Unit]
-     Description=Telegram bot
+     Description=Analytics BI
      After=multi-user.target
 
     [Service]
      Type=idle
-     ExecStart=/usr/bin/python3 /path/to/script/bot.py
+     ExecStart=/usr/bin/python3 /path/to/script/main.py
      Restart=always
 
     [Install]
@@ -48,5 +48,5 @@ If pip3 are not installed: *sudo apt-install python3-pip*
   3. Now start the daemon execute one by one:
   
    - *sudo systemctl daemon-reload*
-   - *sudo systemctl enable bot.service*
-   - *sudo systemctl start bot.service*
+   - *sudo systemctl enable analytics_bi.service*
+   - *sudo systemctl start analytics_bi.service*
