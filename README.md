@@ -45,6 +45,8 @@ If pip3 are not installed: sudo apt-install python3-pip
      
    </code>
    
+   3. Run connector.py on the server with access to the TTM system.  
+   
   3. Now start the daemon execute one by one:
   
    - *sudo systemctl daemon-reload*
