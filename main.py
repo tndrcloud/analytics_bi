@@ -3,7 +3,6 @@ import time
 import database
 import re
 from log import logger
-from messager import TelegramHandler
 from datetime import datetime
 from datetime import timedelta
 from ws_server import ServerServices
