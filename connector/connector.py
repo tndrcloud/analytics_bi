@@ -8,6 +8,11 @@ import logging
 from datetime import datetime
 from datetime import timedelta
 from log import logger
+from envparse import Env
+
+
+env = Env()
+env.read_envfile('.env')
 
 
 class ConnectorNTTM:
@@ -20,9 +25,9 @@ class ConnectorNTTM:
     """
 
     def __init__(self, loop):
-        self._email = 'EMAIL'
-        self._password = 'PASSWORD'
-        self._url = 'URL'
+        self._email = env.str("EMAIL")
+        self._password = env.str("PASSWORD")
+        self._url = env.str("URL")
         self._user_agent = fake_useragent.UserAgent().random
         self.tasks = asyncio.Queue()
         self.results = asyncio.Queue()
@@ -218,8 +223,12 @@ class ConnectorNTTM:
 
 
 async def main():
+    token = env.str("TOKEN")
+    key = env.str("KEY")
+    server = env.str("SERVER")
+    
     def sha256(data):
-        hash_object = hashlib.sha256(bytes('TOKEN' + data + 'KEY', encoding='utf-8'))
+        hash_object = hashlib.sha256(bytes(token + data + key, encoding='utf-8'))
         hex_dig = hash_object.hexdigest()
         return hex_dig
 
@@ -235,8 +244,8 @@ async def main():
 
     while True:
         try:
-            async with websockets.connect('SERVER') as ws:
-                await ws.send('TOKEN')
+            async with websockets.connect(server) as ws:
+                await ws.send(token)
                 salt = await ws.recv()
                 await ws.send(sha256(salt))
                 await ws.send('nttm')
