@@ -3,7 +3,7 @@ import os
 
 
 def get_logger():
-    connector_logger = logging.getLogger('connector nttm')
+    connector_logger = logging.getLogger('connector_nttm')
     format_ = logging.Formatter('%(asctime)s:%(levelname)s:%(name)s:file %(module)s line %(lineno)d:%(message)s')
 
     # File log
