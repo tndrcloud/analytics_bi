@@ -1,13 +1,18 @@
 import psycopg2
+from envparse import Env
+
+
+env = Env()
+env.read_envfile('.env')
 
 
 def sql_request(sql, data_python=()):
     connect = psycopg2.connect(
-        dbname='DB_NAME',
-        user='DB_USER',
-        password='DB_PASSWORD',
-        host='DB_HOST',
-        port='DB_PORT'
+        dbname=env.str("DB_NAME"),
+        user=env.str("DB_USER"),
+        password=env.str("DB_PASSWORD"),
+        host=env.str("DB_HOST"),
+        port=env.str("DB_PORT")
     )
     cursor = connect.cursor()
 
