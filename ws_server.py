@@ -7,6 +7,11 @@ import time
 import asyncio
 import websockets
 from log import logger
+from envparse import Env
+
+
+env = Env()
+env.read_envfile('.env')
 
 
 class ConnectorNTTM:
@@ -130,8 +135,8 @@ class ServerServices:
 
     def __init__(self, port):
         self._port = port
-        self._TOKEN = 'TOKEN'
-        self._KEY = 'KEY'
+        self._TOKEN = env.str("TOKEN")
+        self._KEY = env.str("KEY")
         self.nttm = ConnectorNTTM()
 
         threading.Thread(target=lambda: asyncio.run(self.create_server()), daemon=True).start()
