@@ -2,10 +2,15 @@ import asyncio
 import time
 import database
 import re
+from envparse import Env
 from log import logger
 from datetime import datetime
 from datetime import timedelta
 from ws_server import ServerServices
+
+
+env = Env()
+env.read_envfile('.env')
 
 
 class Analytics:
@@ -17,12 +22,11 @@ class Analytics:
     """
 
     def __init__(self, stopped, arrears):
+        self._stopped_filter = stopped
+        self._arrears_filter = arrears
         self._stopped_tickets = []
         self._arrears_tickets = []
-        self._stopped_key_filter = stopped
-        self._arrears_key_filter = arrears
-        self._messager = TelegramHandler()
-
+        
     @staticmethod
     def analise(ticket):
         def expires(task, counter_sla, sla):
@@ -196,7 +200,7 @@ class Analytics:
         logger.warning(f"Запрос дашборда по фильтру")
         response = await services.nttm.get_tasks(key_filter)
 
-        if key_filter == self._stopped_key_filter:
+        if key_filter == self._stopped_filter:
             self._stopped_tickets.clear()
         else:
             self._arrears_tickets.clear()
@@ -215,7 +219,7 @@ class Analytics:
 
         if response['status_code'] == 200:
             result = response['result']
-            if key == self._stopped_key_filter:
+            if key == self._stopped_filter:
                 return self._stopped_tickets.append(result)
             else:
                 return self._arrears_tickets.append(result)
@@ -227,7 +231,7 @@ class Analytics:
             tasks.append(task)
 
         await asyncio.gather(*tasks)
-        if key == self._stopped_key_filter:
+        if key == self._stopped_filter:
             if self._stopped_tickets:
                 return self._stopped_tickets
             logger.error(f"Ошибка с приостановками", exc_info=True)
@@ -238,11 +242,12 @@ class Analytics:
 
 
 async def core():
-    stopped_filter = "STOPPED_KEY_FILTER"
-    arrears_filter = "ARREARS_KEY_FILTER"
-
+    port = env("PORT")
+    stopped_filter = env.str("STOPPED_KEY_FILTER")
+    arrears_filter = env.str("ARREARS_KEY_FILTER")
+    
     analyst = Analytics(stopped_filter, arrears_filter)
-    service = ServerServices('PORT')
+    service = ServerServices(port)
 
     successfully = False
     date_event = datetime.now() - timedelta(seconds=1)
