@@ -3,7 +3,7 @@ import os
 
 
 def get_logger():
-    service_logger = logging.getLogger('analytics nttm')
+    service_logger = logging.getLogger('analytics_bi')
     format_ = logging.Formatter('%(asctime)s:%(levelname)s:%(name)s:file %(module)s line %(lineno)d:%(message)s')
 
     # File log
