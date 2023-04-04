@@ -47,17 +47,17 @@ class ExpiresTickets:
 
     @staticmethod
     def add_ticket(ticket, responsible, comment, date):
-        sql = f"INSERT INTO nttm_bi.expires_tickets VALUES ('{ticket}', '{responsible}', '{comment}', '{date}')"
+        sql = f"""INSERT INTO nttm_bi.expires_tickets VALUES ('{ticket}', '{responsible}', '{comment}', '{date}')"""
         return sql_request(sql)
 
     @staticmethod
     def get_from_day_tickets(date):
-        sql = f"SELECT * FROM nttm_bi.expires_tickets WHERE add_date = '{date}'"
+        sql = f"""SELECT * FROM nttm_bi.expires_tickets WHERE add_date = '{date}'"""
         return sql_request(sql)
 
     @staticmethod
     def get_ticket(ticket):
-        sql = f"SELECT * FROM nttm_bi.expires_tickets WHERE ticket_number = '{ticket}'"
+        sql = f"""SELECT * FROM nttm_bi.expires_tickets WHERE ticket_number = '{ticket}'"""
         return sql_request(sql)
 
 
@@ -91,12 +91,12 @@ class StoppedTickets:
 
     @staticmethod
     def get_all_tickets_id():
-        sql = "SELECT task_number FROM nttm_bi.stopped_tickets"
+        sql = """SELECT task_number FROM nttm_bi.stopped_tickets"""
         return sql_request(sql)
 
     @staticmethod
     def get_ticket(ticket):
-        sql = f"SELECT * FROM nttm_bi.stopped_tickets WHERE task_number = '{ticket}'"
+        sql = f"""SELECT * FROM nttm_bi.stopped_tickets WHERE task_number = '{ticket}'"""
         return sql_request(sql)
 
     @staticmethod
