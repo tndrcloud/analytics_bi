@@ -6,12 +6,16 @@ import json
 import time
 import asyncio
 import websockets
+from typing import Coroutine, Awaitable
 from log import logger
 from envparse import Env
 
 
 env = Env()
 env.read_envfile('.env')
+
+key = env.str("KEY")
+token = env.str("TOKEN")
 
 
 class ConnectorNTTM:
@@ -24,7 +28,7 @@ class ConnectorNTTM:
     5. Если задача не выполнена за период таймаута, сервер получает соответствующее сообщение
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.clients = []
         self._queue_tasks = asyncio.Queue()
         self._complete_tasks = {}
@@ -32,7 +36,7 @@ class ConnectorNTTM:
         self._end_id = 0
         self._lock = threading.RLock()
 
-    async def _send(self):
+    async def _send(self) -> Awaitable:
         ws = None
         while True:
             try:
@@ -49,7 +53,7 @@ class ConnectorNTTM:
                 logger.error(error, exc_info=True)
                 await self._disconnect(ws)
 
-    async def _recv(self):
+    async def _recv(self) -> Awaitable:
         ws = None
         while True:
             try:
@@ -68,23 +72,23 @@ class ConnectorNTTM:
                 logger.error(error, exc_info=True)
                 await self._disconnect(ws)
 
-    async def _disconnect(self, ws):
+    async def _disconnect(self, ws: websockets.connect) -> Coroutine:
         if ws in self.clients:
             if ws.open:
                 await ws.close()
             self.clients.remove(ws)
             logger.warning(f"client {ws.service} {ws.remote_address} disconnect")
 
-    def run(self):
+    def run(self) -> None:
         asyncio.create_task(self._send())
         asyncio.create_task(self._recv())
 
-    def check_client(self):
+    def check_client(self) -> bool:
         if len(self.clients) > 0:
             return True
         return False
 
-    async def create_task(self, task: dict):
+    async def create_task(self, task: dict) -> dict[str, dict]:
         if len(self.clients) == 0:
             return {'status_code': 501, 'result': 'module not connect'}
 
@@ -113,12 +117,12 @@ class ConnectorNTTM:
                 return {'status_code': 500, 'result': text}
             await asyncio.sleep(0.1)
 
-    async def get_tasks(self, key_filter):
+    async def get_tasks(self, key_filter: str) -> dict[str, dict]:
         task = {'type': 'get_tasks', 'filter': key_filter}
         completed_task = await self.create_task(task)
         return completed_task
 
-    async def get_inc(self, inc):
+    async def get_inc(self, inc: int) -> dict[str, dict]:
         task = {'type': 'get_inc', 'inc': str(inc)}
         completed_task = await self.create_task(task)
         return completed_task
@@ -133,21 +137,21 @@ class ServerServices:
     4. От сервиса ожидается название модуля (такое же, как свойство класса, например, nttm)
     """
 
-    def __init__(self, port):
+    def __init__(self, port: int) -> None:
         self._port = port
-        self._TOKEN = env.str("TOKEN")
-        self._KEY = env.str("KEY")
+        self._TOKEN = token
+        self._KEY = key
         self.nttm = ConnectorNTTM()
 
         threading.Thread(target=lambda: asyncio.run(self.create_server()), daemon=True).start()
 
-    async def create_server(self):
+    async def create_server(self) -> Awaitable:
         self.nttm.run()
         logger.info("webserver start")
         async with websockets.serve(self._authentication, port=self._port, max_size=10240000):
             await asyncio.Future()
 
-    async def _authentication(self, ws):
+    async def _authentication(self, ws: websockets.connect) -> Coroutine:
         try:
             message = await asyncio.wait_for(ws.recv(), timeout=2)
 
