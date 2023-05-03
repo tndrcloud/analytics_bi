@@ -1,56 +1,75 @@
-<h2>Analytics BI</h2>
+<h2>Analytics NTTM-BI</h2>
 
-- microservice for BI analytics (integration with a TTM system for analyzing the reasons for exceeding SLA indicators with detailed analysis and information about the work of the departments involved in solving the problem).
+- Микросервис с клиент-серверной архитектурой для BI-аналитики представляющий собой интеграцию с TTM-системой для анализа причин превышения показателей SLA с подробным анализом и информацией о работе подразделений, задействованных в решении проблемы, задачей которого является мониторинг состояния тикетов всего направления в реальном времени для своевременного обнаружения причин превышения показателей SLA, актуальный список тикетов в приостановке и отображения этого на дашборде BI-аналитики.
 
-<h2>Requirements</h2>
+<h2>Требования</h2>
 
-- python 3.9+
+- python 3.11
 - asyncio
 - aiohttp
 - websockets
 - threading
-- psycopg2
+- sqlalchemy
+- docker
 
-Use command *pip3 install -r .\requirements.txt
+<h2>Процесс развёртывания (деплоя)</h2>
 
-If pip3 are not installed: sudo apt-install python3-pip
+1. На стороне сервера:
 
- <h2>How use</h2>
- 
- If you run programm from the shell, run it as sudo-user.
- 
- If you run programm like a service check yourself.
- 
- **To run this programm/script you can use the following commands:**
- 
- - Run with opened console. Can't use console for another tasks(console are not available):
-  *python3 /path/to/script/main.py*
- - Run with opened console. Can use console for another tasks(console are available):
-  *python3 /path/to/script/main.py &*
- - Run like daemon. Console can used for another tasks or can be closed:
-  1. Create daemon-file *sudo touch /etc/systemd/system/analytics_bi.service*
-  2. Write the following in created daemon-file:
-  
-    <code>
-    
-    [Unit]
-     Description=Analytics BI
-     After=multi-user.target
+  Сервер должен иметь сетевую связанность: 
+  - с сетью где находится BI-аналитика
+  - с сетью клиента
 
-    [Service]
-     Type=idle
-     ExecStart=/usr/bin/python3 /path/to/script/main.py
-     Restart=always
+  1. Установить (для Ubuntu):
 
-    [Install]
-     WantedBy=multi-user.target
-     
-    </code>
-   
-   3. Run connector.py on the server with access to the TTM system.  
-   
-  3. Now start the daemon execute one by one:
-  
-   - *sudo systemctl daemon-reload*
-   - *sudo systemctl enable analytics_bi.service*
-   - *sudo systemctl start analytics_bi.service*
+    Docker:
+      - sudo apt update
+      - sudo apt install apt-transport-https ca-certificates curl software-properties-common
+      - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+      - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+      - sudo apt update
+      - apt-cache policy docker-ce
+      - sudo apt install docker-ce
+      - sudo systemctl status docker
+
+    Docker-compose:
+      - sudo curl -L "https://github.com/docker/compose/releases/download/1.26.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+      - sudo chmod +x /usr/local/bin/docker-compose
+
+  2. Создать файл .env в директории ./app и заполнить переменные окружения, где: 
+
+    DB_USER={логин пользователя PostgreSQL}
+    DB_PASSWORD={пароль от пользователя PostgreSQL}
+    DB_NAME={название БД в PostgreSQL}
+    DB_PATH={путь для доступа к БД - postgresql://login:password@ip:port/dbname}
+    TOKEN={токен авторизации}
+    KEY={ключ авторизации}
+    PORT={порт на котором развернуть сервер}
+    INTERVAL={интервал запросов к тикет-системе в секундах}
+    FILTER_ARREARS={ключ фильтра просроченных тикетов по SLA}
+    FILTER_STOPPED={ключ фильтра приостановленных тикетов}
+
+  3. Запустить команду: docker-compose -f docker-compose-app.yaml up -d из директории ./app
+
+2. На стороне клиента:
+
+  Клиент должен имень сетевую связанность с:
+  - сетью сервера
+  - сетью тикет-системы
+
+  1. Установить (для Ubuntu):
+
+    Docker: подробнее в пункте 1.1
+
+  2. Создать файл .env в директории ./connector и заполнить переменные окружения, где:
+
+    EMAIL={почта пользователя тикет-системы}
+    PASSWORD={пароль пользователя тикет-системы}
+    URL={адрес тикет-системы в сети}
+    TOKEN={токен авторизации, должен быть такой же как в пункте 1.2}
+    KEY={ключ авторизации, должен быть такой же как в пункте 1.2}
+    SERVER={адрес вебсокет сервера - ws://ip:port}
+
+  3. Запустить команду: docker build -t {имя образа} - < Dockerfile из директории ./connector
+
+  4. Запустить команду: docker run {имя образа} 
