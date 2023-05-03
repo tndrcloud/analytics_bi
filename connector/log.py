@@ -2,7 +2,7 @@ import logging
 import os
 
 
-def get_logger():
+def get_logger() -> logging.Logger:
     connector_logger = logging.getLogger('connector_nttm')
     format_ = logging.Formatter('%(asctime)s:%(levelname)s:%(name)s:file %(module)s line %(lineno)d:%(message)s')
 

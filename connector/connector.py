@@ -5,6 +5,7 @@ import websockets
 import hashlib
 import json
 import logging
+from typing import Coroutine, Awaitable
 from datetime import datetime
 from datetime import timedelta
 from log import logger
@@ -13,6 +14,13 @@ from envparse import Env
 
 env = Env()
 env.read_envfile('.env')
+
+email = env.str("EMAIL")
+token = env.str("TOKEN")
+url = env.str("URL")
+key = env.str("KEY")
+server = env.str("SERVER")
+password = env.str("PASSWORD")
 
 
 class ConnectorNTTM:
@@ -24,10 +32,10 @@ class ConnectorNTTM:
     4. Получая ответ от системы, клиент помещает результат в очередь на отправку клиенту
     """
 
-    def __init__(self, loop):
-        self._email = env.str("EMAIL")
-        self._password = env.str("PASSWORD")
-        self._url = env.str("URL")
+    def __init__(self, loop: asyncio.get_event_loop) -> None:
+        self._email = email
+        self._password = password
+        self._url = url
         self._user_agent = fake_useragent.UserAgent().random
         self.tasks = asyncio.Queue()
         self.results = asyncio.Queue()
@@ -38,7 +46,7 @@ class ConnectorNTTM:
 
         loop.create_task(self._core())
 
-    async def _create_session(self):
+    async def _create_session(self) -> Coroutine:
         while True:
             session = aiohttp.ClientSession()
             payload = json.dumps(dict(username=self._email, password=self._password, force=True))
@@ -62,7 +70,7 @@ class ConnectorNTTM:
                 logger.error(await response.text())
                 await asyncio.sleep(5)
 
-    async def _get_session(self):
+    async def _get_session(self) -> list[aiohttp.ClientSession, dict]:
         if self._active_session == 0:
             self._active_session += 1
             await self._create_session()
@@ -74,7 +82,7 @@ class ConnectorNTTM:
             self._timer = datetime.now() + timedelta(hours=6)
         return self._session
 
-    async def _logout(self):
+    async def _logout(self) -> Coroutine:
         session, headers = self._session
         try:
             await session.get(self._url + "/nttm-task-handler/api/logout", headers=headers, timeout=10)
@@ -84,14 +92,14 @@ class ConnectorNTTM:
         await session.close()
         self._session.clear()
 
-    async def _close_session(self, code):
+    async def _close_session(self, code: int) -> Coroutine:
         if code != 200 and self._active_session == 1:
             if self._session:
                 self._active_session -= 1
                 await self._session[0].close()
                 await self._logout()
 
-    async def _draft(self, method, url, timeout=10, params=None, data=None, json_=None):
+    async def _draft(self, method: str, url: str, timeout=10, params=None, data=None, json_=None) -> Coroutine:
         code, result = None, None
         request_data = {'method': method, 'url': url, 'timeout': timeout,
                         'params': params, 'data': data, 'json': json_}
@@ -130,8 +138,8 @@ class ConnectorNTTM:
 
         return code, result
 
-    async def _get_tasks(self, task_id, filter_key):
-        def modify_filter(data):
+    async def _get_tasks(self, task_id: int, filter_key: str) -> Coroutine:
+        def modify_filter(data: str) -> str:
             yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
             db_yesterday = (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d')
 
@@ -140,6 +148,7 @@ class ConnectorNTTM:
             modify_date = str(filter_field).replace('2023-01-24', f'{db_yesterday}')
             modify_date = str(modify_date).replace('2023-01-25', f'{yesterday}')
             result_filter = modify_date.encode('utf-8')
+            
             return result_filter
 
         try:
@@ -153,7 +162,7 @@ class ConnectorNTTM:
 
                 else:
                     if not filter_key == "5481e1e0-0ff7-4dec-a183-96ee95a61c29":
-                        filter_ = modify_filter(result)
+                        filter_ = modify_filter(result['result'])
                         size, request = 100, "ticket"
                     else:
                         filter_ = result['filter'].encode('utf-8')
@@ -189,7 +198,7 @@ class ConnectorNTTM:
             logger.error(err, exc_info=True)
             self.results.put_nowait({'task_id': task_id, 'status_code': 400, 'result': f'fatal error: {err}'})
 
-    async def _get_incident(self, task_id, inc):
+    async def _get_incident(self, task_id: int, inc: int) -> Coroutine:
         try:
             url = f"{self._url}/nttm-web-gateway/api/ticket/{inc}"
             code, result = await self._draft('GET', url)
@@ -199,7 +208,7 @@ class ConnectorNTTM:
             logger.error(err, exc_info=True)
             self.results.put_nowait({'task_id': task_id, 'status_code': 400, 'result': f'fatal error: {err}'})
 
-    async def _core(self):
+    async def _core(self) -> Awaitable:
         task = {'task_id': None}
 
         while True:
@@ -222,17 +231,13 @@ class ConnectorNTTM:
                 self.results.put_nowait({'type': 'event', 'message': err, 'task_id': task['task_id']})
 
 
-async def main():
-    token = env.str("TOKEN")
-    key = env.str("KEY")
-    server = env.str("SERVER")
-    
-    def sha256(data):
+async def main() -> Awaitable:
+    def sha256(data: str) -> hashlib.hash_object:
         hash_object = hashlib.sha256(bytes(token + data + key, encoding='utf-8'))
         hex_dig = hash_object.hexdigest()
         return hex_dig
 
-    async def sender_analyst(websocket, service):
+    async def sender_analyst(websocket: websockets.connect, service: ConnectorNTTM) -> Coroutine:
         while websocket.open:
             try:
                 result = json.dumps(service.results.get_nowait())
