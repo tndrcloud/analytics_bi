@@ -4,6 +4,7 @@ RUN mkdir ./connector_nttm
 COPY . ./connector_nttm
 WORKDIR /connector_nttm
 
+RUN python3 -m venv venv
 RUN python3 -m pip install -r requirements.txt
 
 EXPOSE 8088
